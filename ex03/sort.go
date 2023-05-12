@@ -7,149 +7,168 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
-)
-
-var (
-	k *int
-	n *bool
-	r *bool
-	u *bool
 )
 
 type StringHeap []string
 
-func (h StringHeap) Len() int {
-	return len(h)
+type Flag struct {
+	key          int
+	numeric      bool
+	reverse      bool
+	unique       bool
+	month        bool
+	ignoreBlanks bool
+	check        bool
+	humanNumeric bool
 }
 
-func (h StringHeap) Less(i, j int) bool {
-	if *r {
-		return !less(h[i], h[j], *k, *n)
+type Sort struct {
+	keys map[string]bool
+	flag Flag
+	heap *StringHeap
+}
+
+func NewSort(flag Flag) *Sort {
+	sort := &Sort{
+		keys: make(map[string]bool),
+		flag: flag,
+		heap: &StringHeap{},
 	}
-	return less(h[i], h[j], *k, *n)
+
+	heap.Init(sort)
+
+	return sort
 }
 
-func (h StringHeap) Swap(i, j int) {
-	h[i], h[j] = h[j], h[i]
+func (s *Sort) Check(in *os.File) error {
+	var current, temp string
+	newScanner := bufio.NewScanner(in)
+
+	newScanner.Scan()
+	temp = newScanner.Text()
+
+	if s.flag.reverse {
+		for newScanner.Scan() {
+			current = newScanner.Text()
+			if less(temp, current, s.flag) {
+				fmt.Fprintf(os.Stderr, "sort: disorder: %s\n", current)
+				os.Exit(1)
+			}
+			temp = current
+		}
+	} else {
+		for newScanner.Scan() {
+			current = newScanner.Text()
+			if less(current, temp, s.flag) {
+				fmt.Fprintf(os.Stderr, "sort: disorder: %s\n", current)
+				os.Exit(1)
+			}
+			temp = current
+		}
+	}
+
+	return newScanner.Err()
 }
 
-func (h *StringHeap) Push(x any) {
-	*h = append(*h, x.(string))
+func (s *Sort) Read(in *os.File) error {
+	newScanner := bufio.NewScanner(in)
+
+	if s.flag.check {
+		return s.Check(in)
+	}
+
+	for newScanner.Scan() {
+		heap.Push(s, newScanner.Text())
+	}
+
+	return newScanner.Err()
 }
 
-func (h *StringHeap) Pop() any {
-	old := *h
+func (s *Sort) Write(out *os.File) {
+	for s.Len() > 0 {
+		fmt.Fprintln(out, heap.Pop(s).(string))
+	}
+}
+
+func (s Sort) Len() int {
+	return len(*s.heap)
+}
+
+func (s Sort) Less(i, j int) bool {
+	if s.flag.reverse {
+		return !less((*s.heap)[i], (*s.heap)[j], s.flag)
+	}
+	return less((*s.heap)[i], (*s.heap)[j], s.flag)
+}
+
+func (s Sort) Swap(i, j int) {
+	(*s.heap)[i], (*s.heap)[j] = (*s.heap)[j], (*s.heap)[i]
+}
+
+func (s *Sort) Push(x any) {
+	if s.flag.unique {
+		key := string(getKey(x.(string), s.flag.key))
+		if _, ok := s.keys[key]; ok {
+			return
+		}
+		s.keys[key] = true
+	}
+
+	*s.heap = append(*s.heap, x.(string))
+}
+
+func (s *Sort) Pop() any {
+	old := *s.heap
 	n := len(old)
 	x := old[n-1]
-	*h = old[0 : n-1]
+	*s.heap = old[0 : n-1]
 	return x
 }
 
-func isDigit(c rune) bool {
-	if c >= '0' && c <= '9' {
-		return true
-	}
-	return false
-}
-
-func getNum(s []rune) ([]rune, int) {
-	var num []rune
-	var i int
-
-	for i = 0; i < len(s) && isDigit(s[i]); i++ {
-		num = append(num, s[i])
-	}
-
-	n, _ := strconv.Atoi(string(num))
-
-	return s[i:], n
-}
-
-func less(str1, str2 string, n int, num bool) bool {
-	s1 := skipWords(str1, n)
-	s2 := skipWords(str2, n)
-
-	var n1, n2 int
-	if num {
-		s1, n1 = getNum(s1)
-		s2, n2 = getNum(s2)
-
-		if n1 < n2 {
-			return true
-		} else if n1 > n2 {
-			return false
-		}
-	}
-
-	for i := 0; i < len(s1) && i < len(s2); i++ {
-		if s1[i] < s2[i] {
-			return true
-		} else if s1[i] > s2[i] {
-			return false
-		}
-	}
-
-	if len(s1) < len(s2) {
-		return true
-	} else if len(s1) > len(s2) {
-		return false
-	}
-
-	if n > 1 {
-		return less(str1, str2, 1, false)
-	}
-
-	return true
-}
-
-func skipWords(s string, n int) []rune {
-	res := []rune(s)
-	i := 0
-
-	for n > 1 {
-		for i < len(s) && s[i] == ' ' {
-			i++
-		}
-		for i < len(s) && s[i] != ' ' {
-			i++
-		}
-		if i < len(s) {
-			i++
-		}
-		n--
-	}
-
-	return res[i:]
-}
-
 func main() {
-	k = flag.Int("k", 1, "define a restricted sort key")
-	n = flag.Bool("n", false, "sort fields numerically by arithmetic value")
-	r = flag.Bool("r", false, "sort in reverse order")
-	u = flag.Bool("u", false, "save only unique keys")
+	k := flag.Int("k", 1, "define a restricted sort key")
+	n := flag.Bool("n", false, "sort fields numerically by arithmetic value")
+	r := flag.Bool("r", false, "Sort in reverse order")
+	u := flag.Bool("u", false, "save only unique keys")
+	m := flag.Bool("M", false, "sort by month abbreviations")
+	b := flag.Bool("b", false, "ignore tail spaces")
+	c := flag.Bool("c", false, "check if data is already sorted")
+	h := flag.Bool("h", false, "sort fields numerically with suffixes")
 	flag.Parse()
+
+	if *n == true && *m == true {
+		fmt.Fprintln(os.Stderr, "sort: n:M: mutually exclusive flags")
+		os.Exit(1)
+	} else if *n == true && *h == true {
+		fmt.Fprintln(os.Stderr, "sort: h:n: mutually exclusive flags")
+		os.Exit(1)
+	} else if *h == true && *m == true {
+		fmt.Fprintln(os.Stderr, "sort: h:M: mutually exclusive flags")
+		os.Exit(1)
+	}
 
 	filename := flag.Arg(0)
 	file, err := os.Open(filename)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 	//defer file.Close()
 
-	h := &StringHeap{}
-	heap.Init(h)
+	sort := NewSort(Flag{
+		key:          *k,
+		numeric:      *n,
+		reverse:      *r,
+		unique:       *u,
+		month:        *m,
+		ignoreBlanks: *b,
+		check:        *c,
+		humanNumeric: *h,
+	})
 
-	newScanner := bufio.NewScanner(file)
-	for newScanner.Scan() {
-		heap.Push(h, newScanner.Text())
+	if err = sort.Read(file); err != nil {
+		log.Fatalln(err)
 	}
 
-	if err := newScanner.Err(); err != nil {
-		log.Fatal(err)
-	}
-
-	for h.Len() > 0 {
-		fmt.Printf("%s\n", heap.Pop(h))
-	}
+	sort.Write(os.Stdout)
 }
