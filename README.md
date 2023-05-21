@@ -189,7 +189,9 @@ fmt.Printf("done after %v", time.Since(start))
 Примеры вызовов:
 
 ```shell
-go-telnet --timeout=10s host port go-telnet mysite.ru 8080 go-telnet --timeout=3s 1.1.1.1 123
+go-telnet --timeout=10s host port 
+go-telnet mysite.ru 8080 
+go-telnet --timeout=3s 1.1.1.1 123
 ```
 
 Требования:

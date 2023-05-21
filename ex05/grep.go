@@ -156,7 +156,7 @@ func readLines(filename string) ([]string, error) {
 	if err != nil {
 		return lines, err
 	}
-	defer file.Close()
+	//defer file.Close()
 
 	newScanner := bufio.NewScanner(file)
 
