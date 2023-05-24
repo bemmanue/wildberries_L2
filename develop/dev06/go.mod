@@ -1,1 +1,1 @@
-module ex06
+module cut
