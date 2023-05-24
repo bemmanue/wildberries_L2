@@ -1,16 +1,5 @@
 package main
 
-import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"log"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
-)
-
 /*
 === HTTP server ===
 
@@ -32,6 +21,17 @@ import (
 	3. В случае ошибки бизнес-логики сервер должен возвращать HTTP 503. В случае ошибки входных данных (невалидный int например) сервер должен возвращать HTTP 400. В случае остальных ошибок сервер должен возвращать HTTP 500. Web-сервер должен запускаться на порту указанном в конфиге и выводить в лог каждый обработанный запрос.
 	4. Код должен проходить проверки go vet и golint.
 */
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+)
 
 // Event хранит данные о событии
 type Event struct {
