@@ -1,2 +1,2 @@
-module ex04
+module anagram
 
