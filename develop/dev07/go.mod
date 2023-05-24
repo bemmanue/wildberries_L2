@@ -1,1 +1,1 @@
-module ex07
+module or-channel
