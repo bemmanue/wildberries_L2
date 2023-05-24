@@ -1,4 +1,4 @@
-module ex08
+module shell
 
 go 1.20
 
