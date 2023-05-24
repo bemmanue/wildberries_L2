@@ -1,5 +1,18 @@
 package main
 
+/*
+=== Утилита cut ===
+
+Принимает STDIN, разбивает по разделителю (TAB) на колонки, выводит запрошенные
+
+Поддержать флаги:
+-f - "fields" - выбрать поля (колонки)
+-d - "delimiter" - использовать другой разделитель
+-s - "separated" - только строки с разделителем
+
+Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
+*/
+
 import (
 	"bufio"
 	"errors"
@@ -16,12 +29,14 @@ var (
 	ErrBadDelimiter     = errors.New("cut: [-d] delim: bad delimiter")
 )
 
+// Flag описывает флаги
 type Flag struct {
 	f string
 	d string
 	s bool
 }
 
+// getKeys возвращает сортированный массив ключей мапы
 func getKeys(m map[int]bool) []int {
 	s := make([]int, 0, len(m))
 
@@ -33,6 +48,9 @@ func getKeys(m map[int]bool) []int {
 	return s
 }
 
+// getList парсит значение флага -f. Он возвращает сортированный массив номеров полей,
+// по которым нужно обрезать строку. Также функция возвращает номер поля,
+// начиная с которого нужно вывести все элементы. Это делается для экономии памяти.
 func getList(fields string) ([]int, int, error) {
 	data := make(map[int]bool)
 	endlessFrom := 0
@@ -102,7 +120,8 @@ func getList(fields string) ([]int, int, error) {
 	return list, endlessFrom, nil
 }
 
-func getDelim(delim string) (string, error) {
+// checkDelim проверяет, чтобы разделитель состоял из одного символа
+func checkDelim(delim string) (string, error) {
 	d := []rune(delim)
 
 	if len(d) != 1 {
@@ -112,13 +131,14 @@ func getDelim(delim string) (string, error) {
 	return delim, nil
 }
 
+// Cut считывает строки, разбивает их по разделителю на колонки и выводит запрошенные
 func Cut(flags Flag, in, out *os.File) error {
 	list, endlessFrom, err := getList(flags.f)
 	if err != nil {
 		return err
 	}
 
-	delim, err := getDelim(flags.d)
+	delim, err := checkDelim(flags.d)
 	if err != nil {
 		return err
 	}
@@ -158,6 +178,7 @@ func Cut(flags Flag, in, out *os.File) error {
 	return nil
 }
 
+// isFlagPassed проверяет, был ли использован флаг при запуске программы
 func isFlagPassed(name string) bool {
 	found := false
 
@@ -177,7 +198,7 @@ func main() {
 	flag.Parse()
 
 	if !isFlagPassed("f") {
-		fmt.Fprintln(os.Stderr, "usage: cut -f list [-s] [-d delim]")
+		fmt.Fprintln(os.Stderr, "usage: cut -f list [-s] [-d delim] [file]")
 	}
 
 	flags := Flag{
