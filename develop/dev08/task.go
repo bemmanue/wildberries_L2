@@ -14,6 +14,7 @@ import (
 	"strings"
 )
 
+// execCmd исполняет команды
 func execCmd(argv string, in io.Reader, out io.Writer) error {
 	args := strings.Fields(argv)
 	if len(args) == 0 {
@@ -115,6 +116,7 @@ func execCmd(argv string, in io.Reader, out io.Writer) error {
 	return nil
 }
 
+// prompt печатает промпт
 func prompt() {
 	dir, _ := os.Getwd()
 	fmt.Printf("shell %s %% ", filepath.Base(dir))
@@ -123,14 +125,18 @@ func prompt() {
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 
+	// в цикле считываем строку
 	for prompt(); scanner.Scan(); prompt() {
+		// создаем буферы для использования их как пайпов
 		var in, out bytes.Buffer
 
 		scan := bufio.NewScanner(os.Stdin)
 		in.Write(scan.Bytes())
 
+		// разделяем строку по пайпам на несколько команд
 		cmd := strings.Split(scanner.Text(), "|")
 
+		// выполняем команды
 		for i := 0; i+1 < len(cmd); i++ {
 			if err := execCmd(cmd[i], &in, &out); err != nil {
 				fmt.Fprintf(os.Stderr, "shell: %s\n", err.Error())
@@ -141,6 +147,7 @@ func main() {
 			out.Reset()
 		}
 
+		// выполняем последнюю команду, ее вывод должен быть направлен в os.Stdout
 		if err := execCmd(cmd[len(cmd)-1], &in, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "shell: %s\n", err.Error())
 		}
