@@ -1,4 +1,4 @@
-module dev11
+module server
 
 go 1.20
 
