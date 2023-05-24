@@ -1,4 +1,4 @@
-module ex01
+module basic
 
 go 1.20
 
