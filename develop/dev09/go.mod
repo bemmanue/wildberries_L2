@@ -1,4 +1,4 @@
-module ex09
+module wget
 
 go 1.20
 
